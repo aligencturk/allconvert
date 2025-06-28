@@ -1,0 +1,7 @@
+flask==2.3.3
+spotipy==2.23.0
+yt-dlp==2023.9.24
+requests==2.31.0
+python-dotenv==1.0.0
+pytube==15.0.0
+beautifulsoup4==4.12.2 
