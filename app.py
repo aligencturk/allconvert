@@ -18,8 +18,68 @@ app = Flask(__name__)
 download_status = {}
 downloaded_files = []
 
+def get_artist_name_from_url(artist_url):
+    """Spotify artist URL'sinden sanatçı adını çek"""
+    try:
+        if not artist_url or not artist_url.startswith('https://open.spotify.com/artist/'):
+            return None
+            
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+        }
+        
+        session = requests.Session()
+        session.headers.update(headers)
+        
+        response = session.get(artist_url, timeout=8)
+        
+        if response.status_code != 200:
+            print(f"Artist URL HTTP Error: {response.status_code}")
+            return None
+        
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Artist name çekme yöntemleri
+        # Yöntem 1: og:title
+        title_tag = soup.find('meta', property='og:title')
+        if title_tag and title_tag.get('content'):
+            title = title_tag['content']
+            # "Artist Name | Spotify" formatını temizle
+            clean_title = title.replace(' | Spotify', '').replace(' - Spotify', '').strip()
+            if clean_title and len(clean_title) < 100:
+                print(f"Artist URL'den bulunan: {clean_title}")
+                return clean_title
+        
+        # Yöntem 2: page title
+        title_tag = soup.find('title')
+        if title_tag:
+            title = title_tag.get_text()
+            clean_title = title.replace(' | Spotify', '').replace(' - Spotify', '').strip()
+            if clean_title and len(clean_title) < 100:
+                print(f"Artist page title'dan bulunan: {clean_title}")
+                return clean_title
+        
+        # Yöntem 3: h1 tag (artist name usually in h1)
+        h1_tag = soup.find('h1')
+        if h1_tag:
+            h1_text = h1_tag.get_text().strip()
+            if h1_text and len(h1_text) < 100:
+                print(f"Artist h1'den bulunan: {h1_text}")
+                return h1_text
+        
+        return None
+        
+    except Exception as e:
+        print(f"Artist URL çekme hatası: {e}")
+        return None
+
 def get_spotify_track_info(track_url):
-    """Spotify track URL'sinden şarkı bilgilerini al"""
+    """Spotify track URL'sinden şarkı bilgilerini al - Geliştirilmiş sanatçı çekme"""
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -46,67 +106,201 @@ def get_spotify_track_info(track_url):
         song_name = None
         artist = None
         
-        # Yöntem 1: og:title
+        # ========== YENİ AGRESİF YÖNTEMLER ==========
+        
+        # Yöntem A: Tüm meta tag'leri tara ve artist anahtar kelimelerini ara
+        all_meta_tags = soup.find_all('meta')
+        for meta in all_meta_tags:
+            content = meta.get('content', '').strip()
+            name = meta.get('name', '').lower()
+            prop = meta.get('property', '').lower()
+            
+            # Artist içeren tüm meta tag'leri kontrol et
+            if ('artist' in name or 'musician' in name or 'creator' in name or 
+                'artist' in prop or 'musician' in prop) and content and not artist:
+                artist = content
+                print(f"Meta artist bulundu ({name or prop}): {artist}")
+            
+            # Song/title içeren meta tag'leri kontrol et  
+            if ('song' in name or 'title' in name or 'track' in name or
+                'song' in prop or 'title' in prop) and content and not song_name:
+                song_name = content
+                print(f"Meta song bulundu ({name or prop}): {song_name}")
+        
+        # Yöntem B: DOM'da data-* attribute'leri ara
+        try:
+            elements_with_data = soup.find_all(attrs=lambda x: x and isinstance(x, dict) and any(key.startswith('data-') for key in x.keys()))
+            for elem in elements_with_data:
+                for attr, value in elem.attrs.items():
+                    if attr.startswith('data-') and isinstance(value, str):
+                        lower_attr = attr.lower()
+                        if ('artist' in lower_attr or 'musician' in lower_attr or 'creator' in lower_attr) and not artist:
+                            artist = value.strip()
+                            print(f"Data attribute artist bulundu ({attr}): {artist}")
+                        elif ('song' in lower_attr or 'track' in lower_attr or 'title' in lower_attr) and not song_name:
+                            song_name = value.strip()
+                            print(f"Data attribute song bulundu ({attr}): {song_name}")
+        except Exception as e:
+            print(f"Data attribute arama hatası: {e}")
+            pass
+        
+        # Yöntem C: Sayfa içindeki tüm script tag'leri parse et ve değişken ara
+        script_tags = soup.find_all('script')
+        for script in script_tags:
+            if script.string:
+                script_content = script.string
+                
+                # JavaScript değişkenlerini ara
+                patterns_for_artist = [
+                    r'"artist":\s*"([^"]+)"',
+                    r'"artist_name":\s*"([^"]+)"',
+                    r'"creator":\s*"([^"]+)"',
+                    r'"musician":\s*"([^"]+)"',
+                    r'"by":\s*"([^"]+)"',
+                    r'artist:\s*["\']([^"\']+)["\']',
+                    r'creator:\s*["\']([^"\']+)["\']',
+                    r'byArtist.*?"name":\s*"([^"]+)"'
+                ]
+                
+                patterns_for_song = [
+                    r'"name":\s*"([^"]+)"',
+                    r'"title":\s*"([^"]+)"', 
+                    r'"track_name":\s*"([^"]+)"',
+                    r'"song":\s*"([^"]+)"',
+                    r'name:\s*["\']([^"\']+)["\']',
+                    r'title:\s*["\']([^"\']+)["\']'
+                ]
+                
+                if not artist:
+                    for pattern in patterns_for_artist:
+                        match = re.search(pattern, script_content, re.IGNORECASE)
+                        if match:
+                            potential_artist = match.group(1).strip()
+                            if len(potential_artist) > 1 and len(potential_artist) < 100:
+                                artist = potential_artist
+                                print(f"Script artist bulundu: {artist}")
+                                break
+                
+                if not song_name:
+                    for pattern in patterns_for_song:
+                        match = re.search(pattern, script_content, re.IGNORECASE)
+                        if match:
+                            potential_song = match.group(1).strip()
+                            if len(potential_song) > 1 and len(potential_song) < 150:
+                                song_name = potential_song
+                                print(f"Script song bulundu: {song_name}")
+                                break
+        
+        # Yöntem D: CSS Selector'ları ile DOM arama
+        css_selectors_for_artist = [
+            '[data-testid*="artist"]',
+            '[class*="artist"]',
+            '[id*="artist"]',
+            'a[href*="/artist/"]',
+            '.artist-name',
+            '.creator',
+            '.musician'
+        ]
+        
+        for selector in css_selectors_for_artist:
+            if not artist:
+                try:
+                    elements = soup.select(selector)
+                    for elem in elements:
+                        text = elem.get_text().strip()
+                        if text and len(text) > 1 and len(text) < 100 and not text.lower().startswith('http'):
+                            artist = text
+                            print(f"CSS selector artist bulundu ({selector}): {artist}")
+                            break
+                except:
+                    continue
+        
+        # ========== MEVCUT YÖNTEMLER (İyileştirilmiş) ==========
+        
+        # Yöntem 1: og:title - Daha iyi parsing
         title_tag = soup.find('meta', property='og:title')
         if title_tag and title_tag.get('content'):
             title = title_tag['content']
             print(f"OG Title: {title}")
             
-            # Çeşitli format denemeleri
-            if ' - song and lyrics by ' in title.lower():
-                parts = title.split(' - song and lyrics by ')
-                song_name = parts[0].strip()
-                artist = parts[1].strip()
-            elif ' - ' in title:
-                parts = title.split(' - ', 1)
-                song_name = parts[0].strip()
-                artist = parts[1].strip()
-            elif ' · ' in title:
-                parts = title.split(' · ')
-                song_name = parts[0].strip()
-                artist = parts[1].strip() if len(parts) > 1 else ""
-            elif ' by ' in title:
-                parts = title.split(' by ')
-                song_name = parts[0].strip()
-                artist = parts[1].strip()
-            else:
-                song_name = title.strip()
+            # Daha fazla format denemesi
+            formats_to_try = [
+                r'(.+?)\s*-\s*song and lyrics by\s*(.+)',
+                r'(.+?)\s*-\s*(.+?)(?:\s*\|\s*Spotify)?$',
+                r'(.+?)\s*·\s*(.+)',
+                r'(.+?)\s*by\s*(.+)',
+                r'(.+?)\s*-\s*(.+)',
+                r'(.+?)\s*\|\s*(.+)',
+                r'(.+?)\s*/\s*(.+)'
+            ]
+            
+            for fmt in formats_to_try:
+                match = re.match(fmt, title, re.IGNORECASE)
+                if match:
+                    potential_song = match.group(1).strip()
+                    potential_artist = match.group(2).strip()
+                    
+                    if not song_name and potential_song:
+                        song_name = potential_song
+                    if not artist and potential_artist:
+                        artist = potential_artist
+                    break
+            
+            # Eğer hala parse edemedik, başka dene
+            if not song_name and not artist:
+                if ' · ' in title:
+                    parts = title.split(' · ')
+                    song_name = parts[0].strip()
+                    artist = parts[1].strip() if len(parts) > 1 else ""
+                else:
+                    song_name = title.strip()
         
-        # Yöntem 1.5: og:description'dan sanatçı çıkar
+        # Yöntem 1.5: og:description'dan sanatçı çıkar - Daha agresif
         if not artist:
             description_tag = soup.find('meta', property='og:description')
             if description_tag and description_tag.get('content'):
                 description = description_tag['content']
                 print(f"OG Description: {description}")
                 
-                # "Song · Artist" formatı
-                if 'Song ·' in description:
-                    match = re.search(r'Song · ([^·]+)', description)
+                # Daha fazla format denemesi
+                desc_patterns = [
+                    r'Song\s*·\s*([^·\n\r]+)',
+                    r'Listen to .+ on Spotify\.\s*(.+?)[\.\n\r]',
+                    r'by\s+(.+?)[\.\n\r]',
+                    r'Artist:\s*(.+?)[\.\n\r]',
+                    r'Performed by\s*(.+?)[\.\n\r]',
+                    r'(.+?)\s*-\s*Spotify'
+                ]
+                
+                for pattern in desc_patterns:
+                    match = re.search(pattern, description, re.IGNORECASE)
                     if match:
-                        artist = match.group(1).strip()
-                # "Listen to SONG on Spotify. ARTIST" formatı
-                elif 'Listen to' in description and 'on Spotify.' in description:
-                    parts = description.split('on Spotify.')
-                    if len(parts) > 1:
-                        potential_artist = parts[1].strip()
-                        # Nokta ile biten kısmı al
-                        if '.' in potential_artist:
-                            artist = potential_artist.split('.')[0].strip()
-                        else:
+                        potential_artist = match.group(1).strip()
+                        if len(potential_artist) > 1 and len(potential_artist) < 100:
                             artist = potential_artist
+                            print(f"Description pattern artist bulundu: {artist}")
+                            break
         
-        # Yöntem 2: page title
-        if not song_name:
+        # Yöntem 2: page title - Daha iyi parsing
+        if not song_name or not artist:
             title_tag = soup.find('title')
             if title_tag:
                 title = title_tag.get_text()
                 print(f"Page Title: {title}")
-                if ' - ' in title and 'Spotify' in title:
-                    title = title.replace(' | Spotify', '').replace(' - Spotify', '')
-                    if ' - ' in title:
-                        parts = title.split(' - ', 1)
-                        song_name = parts[0].strip()
-                        artist = parts[1].strip()
+                
+                # Spotify'dan temizle
+                clean_title = title.replace(' | Spotify', '').replace(' - Spotify', '').strip()
+                
+                # Farklı ayırıcılarla dene
+                separators = [' - ', ' · ', ' by ', ' | ', ' / ']
+                for sep in separators:
+                    if sep in clean_title:
+                        parts = clean_title.split(sep, 1)
+                        if not song_name:
+                            song_name = parts[0].strip()
+                        if not artist and len(parts) > 1:
+                            artist = parts[1].strip()
+                        break
         
         # Yöntem 3: Meta tag'lerden daha kapsamlı arama
         if not artist or not song_name:
@@ -114,9 +308,10 @@ def get_spotify_track_info(track_url):
             twitter_title = soup.find('meta', attrs={'name': 'twitter:title'})
             if twitter_title and twitter_title.get('content'):
                 title_content = twitter_title['content']
-                if ' - ' in title_content and not song_name:
+                if ' - ' in title_content:
                     parts = title_content.split(' - ', 1)
-                    song_name = parts[0].strip()
+                    if not song_name:
+                        song_name = parts[0].strip()
                     if not artist:
                         artist = parts[1].strip()
             
@@ -130,50 +325,105 @@ def get_spotify_track_info(track_url):
             if song_tag and song_tag.get('content') and not song_name:
                 song_name = song_tag['content']
         
-        # Yöntem 4: JSON-LD structured data
+        # Yöntem 4: JSON-LD structured data - Geliştirilmiş
         if not song_name or not artist:
             scripts = soup.find_all('script', type='application/ld+json')
             for script in scripts:
                 try:
                     if script.string:
                         data = json.loads(script.string)
-                        if isinstance(data, dict):
-                            if data.get('@type') == 'MusicRecording':
-                                if not song_name:
-                                    song_name = data.get('name')
-                                if not artist and data.get('byArtist'):
-                                    if isinstance(data['byArtist'], dict):
-                                        artist = data['byArtist'].get('name')
-                                    elif isinstance(data['byArtist'], list) and len(data['byArtist']) > 0:
-                                        artist = data['byArtist'][0].get('name', '')
-                            elif data.get('@type') == 'WebPage' and data.get('mainEntity'):
-                                entity = data['mainEntity']
-                                if entity.get('@type') == 'MusicRecording':
-                                    if not song_name:
-                                        song_name = entity.get('name')
-                                    if not artist and entity.get('byArtist'):
-                                        artist = entity['byArtist'].get('name')
-                        break
+                        
+                        # Recursive function to search through nested JSON
+                        def extract_from_json(obj, song_found=None, artist_found=None):
+                            if isinstance(obj, dict):
+                                # Direct lookups
+                                if not song_found and obj.get('name'):
+                                    song_found = obj['name']
+                                if not artist_found and obj.get('byArtist'):
+                                    if isinstance(obj['byArtist'], dict):
+                                        artist_found = obj['byArtist'].get('name')
+                                    elif isinstance(obj['byArtist'], list) and len(obj['byArtist']) > 0:
+                                        artist_found = obj['byArtist'][0].get('name', '')
+                                
+                                # Check for other artist fields
+                                artist_fields = ['artist', 'creator', 'musician', 'performer']
+                                for field in artist_fields:
+                                    if not artist_found and obj.get(field):
+                                        if isinstance(obj[field], str):
+                                            artist_found = obj[field]
+                                        elif isinstance(obj[field], dict):
+                                            artist_found = obj[field].get('name', '')
+                                        elif isinstance(obj[field], list) and len(obj[field]) > 0:
+                                            first_artist = obj[field][0]
+                                            if isinstance(first_artist, str):
+                                                artist_found = first_artist
+                                            elif isinstance(first_artist, dict):
+                                                artist_found = first_artist.get('name', '')
+                                
+                                # Recurse into nested objects
+                                for value in obj.values():
+                                    song_found, artist_found = extract_from_json(value, song_found, artist_found)
+                                    
+                            elif isinstance(obj, list):
+                                for item in obj:
+                                    song_found, artist_found = extract_from_json(item, song_found, artist_found)
+                            
+                            return song_found, artist_found
+                        
+                        json_song, json_artist = extract_from_json(data, song_name, artist)
+                        if not song_name and json_song:
+                            song_name = json_song
+                        if not artist and json_artist:
+                            artist = json_artist
+                            
                 except Exception as e:
                     print(f"JSON-LD parse error: {e}")
                     continue
         
-        # Bu kısmı kaldırdık - çünkü aşağıda daha iyi handle ediyoruz
+        # ========== TEMİZLEME VE SON İŞLEMLER ==========
         
         # Bilgileri temizle
         if song_name:
             # Gereksiz metinleri temizle
             song_name = song_name.replace('| Spotify', '').replace('- Spotify', '').strip()
             song_name = re.sub(r'\s+', ' ', song_name)  # Çoklu boşlukları temizle
+            song_name = song_name.replace('"', '').replace("'", "")  # Tırnak işaretlerini kaldır
         
         if artist:
             # Gereksiz metinleri temizle
             artist = artist.replace('| Spotify', '').replace('- Spotify', '').strip()
             artist = re.sub(r'\s+', ' ', artist)  # Çoklu boşlukları temizle
+            artist = artist.replace('"', '').replace("'", "")  # Tırnak işaretlerini kaldır
+            
+            # Eğer sanatçı Spotify URL'si ise, gerçek ismi çek
+            if artist.startswith('https://open.spotify.com/artist/'):
+                print(f"Artist URL tespit edildi, gerçek isim çekiliyor: {artist}")
+                real_artist_name = get_artist_name_from_url(artist)
+                if real_artist_name:
+                    artist = real_artist_name
+                else:
+                    artist = "Bilinmeyen Sanatçı"
             
             # Eğer sanatçı adı çok uzunsa, muhtemelen yanlış parse edilmiştir
             if len(artist) > 100:
                 artist = "Bilinmeyen Sanatçı"
+                
+            # Sanatçı adında yaygın sorunları düzelt
+            if artist.lower().startswith('by '):
+                artist = artist[3:].strip()
+            if artist.lower().endswith(' - spotify'):
+                artist = artist[:-10].strip()
+        
+        # Eğer song_name içinde hem sanatçı hem şarkı varsa, ayır
+        if song_name and not artist and (' - ' in song_name or ' by ' in song_name):
+            if ' - ' in song_name:
+                parts = song_name.split(' - ', 1)
+                song_name = parts[0].strip()
+                artist = parts[1].strip()
+            elif ' by ' in song_name:
+                parts = song_name.split(' by ', 1)
+                song_name = parts[0].strip()
+                artist = parts[1].strip()
         
         # Varsayılan değerler
         if not song_name:
@@ -187,7 +437,7 @@ def get_spotify_track_info(track_url):
         if not artist:
             artist = "Bilinmeyen Sanatçı"
         
-        print(f"Found: {song_name} - {artist}")
+        print(f"✅ SONUÇ: {song_name} - {artist}")
         return song_name, artist
         
     except Exception as e:
