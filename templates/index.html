@@ -152,10 +152,27 @@
             border-radius: 25px;
             font-size: 0.85em;
             font-weight: 600;
-            min-width: 100px;
+            min-width: 110px;
             text-align: center;
             position: relative;
             overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .progress-bar-inner {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.2);
+            width: 0%;
+            transition: width 0.2s linear;
+            z-index: 1;
+        }
+        
+        .status-text {
+            position: relative;
+            z-index: 2;
         }
         
         .status-waiting {
@@ -352,6 +369,7 @@ https://open.spotify.com/track/..."></textarea>
             </div>
             
             <button class="button" onclick="downloadPlaylist()">Tüm Şarkıları İndir</button>
+            <button class="button" onclick="downloadSongsToComputer()" id="download-to-computer-btn" style="display: none;">💾 Şarkıları Bilgisayara İndir</button>
             <button class="button" onclick="clearStatus()">Durumu Temizle</button>
             <button class="button" onclick="showDownloadPath()">📁 İndirme Klasörünü Göster</button>
         </div>
@@ -506,12 +524,16 @@ https://open.spotify.com/track/..."></textarea>
             tracks.forEach((track, index) => {
                 const trackDiv = document.createElement('div');
                 trackDiv.className = 'track-item';
+                trackDiv.setAttribute('data-song-id', `song_${index}`);
                 trackDiv.innerHTML = `
                     <div class="track-info">
                         <div class="track-name">${track.name}</div>
                         <div class="track-artist">${track.artist}</div>
                     </div>
-                    <div class="track-status status-waiting" id="status-song-${index}">Bekliyor</div>
+                    <div class="track-status status-waiting">
+                        <div class="progress-bar-inner"></div>
+                        <span class="status-text">Bekleniyor</span>
+                    </div>
                 `;
                 tracksList.appendChild(trackDiv);
             });
@@ -579,28 +601,42 @@ https://open.spotify.com/track/..."></textarea>
             let currentlyDownloading = '';
             
             Object.keys(statuses).forEach(songId => {
-                const statusElement = document.getElementById(`status-${songId}`);
-                if (statusElement) {
-                    const status = statuses[songId];
-                    statusElement.textContent = status;
-                    
-                    // Durum renklerini güncelle
-                    statusElement.className = 'track-status';
-                    if (status === 'İndiriliyor...') {
+                const trackItem = document.querySelector(`.track-item[data-song-id="${songId}"]`);
+                if (trackItem) {
+                    const statusElement = trackItem.querySelector('.track-status');
+                    const statusText = trackItem.querySelector('.status-text');
+                    const progressBar = trackItem.querySelector('.progress-bar-inner');
+
+                    statusElement.className = 'track-status'; // Reset classes
+                    progressBar.style.width = '0%'; // Reset progress bar
+
+                    if (statuses[songId].startsWith("İndiriliyor...")) {
                         statusElement.classList.add('status-downloading');
-                        // Şu anda indirilen şarkıyı bul
-                        const trackIndex = parseInt(songId.replace('song_', ''));
-                        if (currentTracks[trackIndex]) {
-                            currentlyDownloading = `${currentTracks[trackIndex].name} - ${currentTracks[trackIndex].artist}`;
+                        const progressMatch = statuses[songId].match(/(\d+\.?\d*)%/);
+                        if (progressMatch) {
+                            const percent = progressMatch[1];
+                            statusText.textContent = `İniyor ${percent}%`;
+                            progressBar.style.width = `${percent}%`;
+                        } else {
+                            statusText.textContent = 'İndiriliyor...';
                         }
-                    } else if (status === 'Tamamlandı') {
+                    } else if (statuses[songId] === "İşleniyor...") {
+                        statusElement.classList.add('status-downloading');
+                        statusText.textContent = statuses[songId];
+                        progressBar.style.width = '100%'; // Show full bar for processing
+                        progressBar.style.backgroundColor = 'rgba(255, 255, 255, 0.4)'; // Different color for processing
+                    } else if (statuses[songId] === "Tamamlandı") {
                         statusElement.classList.add('status-completed');
+                        statusText.textContent = statuses[songId];
                         completedCount++;
-                    } else if (status.startsWith('Hata:') || status === 'Bulunamadı') {
+                    } else if (statuses[songId].startsWith("Hata") || statuses[songId] === "Uygun şarkı bulunamadı") {
                         statusElement.classList.add('status-error');
+                        statusText.textContent = "Hata";
+                        statusElement.title = statuses[songId]; // Show full error on hover
                         completedCount++; // Hata da tamamlanmış sayılır
-                    } else {
+                    } else { // "Aranıyor..." ve diğerleri
                         statusElement.classList.add('status-waiting');
+                        statusText.textContent = statuses[songId];
                     }
                 }
             });
@@ -610,9 +646,14 @@ https://open.spotify.com/track/..."></textarea>
                 updateProgressBar(completedCount, totalCount, currentlyDownloading);
             }
             
-            // Eğer dosyalar indirilmişse zip indirme butonu göster
+            // Eğer dosyalar indirilmişse indirme butonlarını göster
             if (downloadedFiles.length > 0) {
                 showDownloadZipButton();
+                // Bilgisayara indirme butonunu göster
+                const downloadBtn = document.getElementById('download-to-computer-btn');
+                if (downloadBtn) {
+                    downloadBtn.style.display = 'inline-block';
+                }
             }
         }
         
@@ -699,7 +740,8 @@ Dosyaları ZIP olarak da indirebilirsiniz!`;
                 
                 // Tüm durumları "Bekliyor" olarak sıfırla
                 document.querySelectorAll('.track-status').forEach(el => {
-                    el.textContent = 'Bekliyor';
+                    el.querySelector('.progress-bar-inner').style.width = '0%';
+                    el.querySelector('.status-text').textContent = 'Bekleniyor';
                     el.className = 'track-status status-waiting';
                 });
                 
@@ -716,6 +758,12 @@ Dosyaları ZIP olarak da indirebilirsiniz!`;
                     zipButton.remove();
                 }
                 
+                // Bilgisayara indirme butonunu gizle
+                const downloadBtn = document.getElementById('download-to-computer-btn');
+                if (downloadBtn) {
+                    downloadBtn.style.display = 'none';
+                }
+                
                 if (downloadInterval) {
                     clearInterval(downloadInterval);
                 }
@@ -723,6 +771,29 @@ Dosyaları ZIP olarak da indirebilirsiniz!`;
                 showSuccess('Durum temizlendi');
             } catch (error) {
                 showError('Durum temizleme hatası: ' + error.message);
+            }
+        }
+
+        async function downloadSongsToComputer() {
+            try {
+                const response = await fetch('/download_zip');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `spotify_songs_${new Date().toISOString().slice(0,10)}.zip`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    showSuccess('Şarkılar bilgisayarınıza indiriliyor!');
+                } else {
+                    const errorData = await response.json();
+                    showError(errorData.error || 'ZIP dosyası oluşturulamadı');
+                }
+            } catch (error) {
+                showError('İndirme hatası: ' + error.message);
             }
         }
     </script>

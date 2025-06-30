@@ -639,6 +639,15 @@ def calculate_audio_quality_score(entry, song_name, artist):
 
 def download_youtube_audio(search_query, output_path, song_id, song_name):
     """YouTube'dan şarkı indir"""
+    
+    def progress_hook(d):
+        if d['status'] == 'downloading':
+            percent_str = d.get('_percent_str', '0.0%').strip()
+            download_status[song_id] = f"İndiriliyor... {percent_str}"
+        elif d['status'] == 'finished':
+            # İndirme bitti, şimdi FFmpeg ile dönüştürme başlayabilir
+            download_status[song_id] = "İşleniyor..."
+
     try:
         download_status[song_id] = "Aranıyor..."
         
@@ -662,10 +671,12 @@ def download_youtube_audio(search_query, output_path, song_id, song_name):
             download_status[song_id] = "Uygun şarkı bulunamadı"
             return False, "Uygun şarkı bulunamadı"
         
-        download_status[song_id] = "İndiriliyor..."
+        # Bu satırı progress_hook'un hemen altına taşıdık
+        # download_status[song_id] = "İndiriliyor..." 
         
         ydl_opts = {
-            'format': 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best[duration>60][duration<900]',  # Audio öncelikli
+            'format': 'bestaudio/best',
+            'progress_hooks': [progress_hook],
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
@@ -674,10 +685,6 @@ def download_youtube_audio(search_query, output_path, song_id, song_name):
             'outtmpl': os.path.join(output_path, f'{safe_filename}.%(ext)s'),
             'quiet': True,
             'no_warnings': True,
-            'extractaudio': True,  # Sadece ses çıkarımını zorla
-            'audioformat': 'mp3',  # MP3 formatını zorla
-            'audioquality': '192K',  # 192kbps kalite
-            'prefer_free_formats': True,  # Özgür formatları tercih et
             'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         }
         
@@ -687,13 +694,42 @@ def download_youtube_audio(search_query, output_path, song_id, song_name):
             
             if result:
                 download_status[song_id] = "Tamamlandı"
-                # İndirilen dosya yolunu kaydet
-                downloaded_files.append({
-                    'song_id': song_id,
-                    'filename': f'{safe_filename}.mp3',
-                    'path': os.path.join(output_path, f'{safe_filename}.mp3')
-                })
-                print(f"✅ İndirildi: {song_name}")
+                
+                # Gerçek indirilen dosya yolunu bul
+                # yt-dlp tarafından indirilen dosyanın gerçek adını al
+                expected_mp3_path = os.path.join(output_path, f'{safe_filename}.mp3')
+                
+                # Klasördeki tüm dosyaları kontrol et ve en son oluşturulmuş mp3 dosyasını bul
+                mp3_files = []
+                for file in os.listdir(output_path):
+                    if file.endswith('.mp3') and safe_filename.lower() in file.lower():
+                        full_path = os.path.join(output_path, file)
+                        mp3_files.append((full_path, os.path.getctime(full_path)))
+                
+                if mp3_files:
+                    # En son oluşturulan dosyayı al
+                    actual_file_path = max(mp3_files, key=lambda x: x[1])[0]
+                    actual_filename = os.path.basename(actual_file_path)
+                    
+                    # İndirilen dosya yolunu kaydet
+                    downloaded_files.append({
+                        'song_id': song_id,
+                        'filename': actual_filename,
+                        'path': actual_file_path
+                    })
+                    print(f"✅ İndirildi: {song_name} -> {actual_filename}")
+                else:
+                    # Beklenen yolda dosya varsa onu kullan
+                    if os.path.exists(expected_mp3_path):
+                        downloaded_files.append({
+                            'song_id': song_id,
+                            'filename': f'{safe_filename}.mp3',
+                            'path': expected_mp3_path
+                        })
+                        print(f"✅ İndirildi: {song_name} -> {safe_filename}.mp3")
+                    else:
+                        print(f"⚠️ Dosya bulunamadı: {song_name}")
+                
                 return True, "Başarılı"
             else:
                 download_status[song_id] = "İndirme başarısız"
@@ -739,14 +775,14 @@ def download_songs():
         os.makedirs(downloads_dir)
     
     # Bu session için alt klasör
-    import datetime
-    session_folder = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    session_folder = datetime.now().strftime("%Y%m%d_%H%M%S")
     temp_dir = os.path.join(downloads_dir, session_folder)
     os.makedirs(temp_dir, exist_ok=True)
     
-    # Dosya listesini temizle
-    global downloaded_files
+    # Dosya listesini temizle ve tüm durumları başlat
+    global downloaded_files, download_status
     downloaded_files = []
+    download_status = {f"song_{i}": "Bekleniyor" for i in range(len(songs))}
     
     # İndirme işlemini arka planda başlat
     def download_thread():
@@ -782,14 +818,33 @@ def download_zip():
     if not downloaded_files:
         return jsonify({'error': 'İndirilmiş dosya bulunamadı'}), 400
     
+    print(f"ZIP oluşturuluyor: {len(downloaded_files)} dosya bulundu")
+    
     # Zip dosyası oluştur
     zip_path = tempfile.mktemp(suffix='.zip')
     
+    files_added = 0
     with zipfile.ZipFile(zip_path, 'w') as zip_file:
         for file_info in downloaded_files:
             file_path = file_info['path']
+            filename = file_info['filename']
+            
+            print(f"Kontrol ediliyor: {file_path}")
+            
             if os.path.exists(file_path):
-                zip_file.write(file_path, file_info['filename'])
+                try:
+                    zip_file.write(file_path, filename)
+                    files_added += 1
+                    print(f"✅ ZIP'e eklendi: {filename}")
+                except Exception as e:
+                    print(f"❌ ZIP'e eklenirken hata: {filename} - {e}")
+            else:
+                print(f"❌ Dosya bulunamadı: {file_path}")
+    
+    print(f"ZIP tamamlandı: {files_added} dosya eklendi")
+    
+    if files_added == 0:
+        return jsonify({'error': 'ZIP dosyasına hiçbir dosya eklenemedi. Dosya yolları kontrol edilsin.'}), 400
     
     return send_file(
         zip_path,
@@ -872,5 +927,25 @@ def get_download_path():
     downloads_dir = os.path.join(os.getcwd(), 'downloads')
     return jsonify({'download_path': downloads_dir})
 
+@app.route('/debug_files')
+def debug_files():
+    """İndirilen dosyaların durumunu kontrol et (debug amaçlı)"""
+    debug_info = {
+        'downloaded_files_count': len(downloaded_files),
+        'files': []
+    }
+    
+    for file_info in downloaded_files:
+        file_path = file_info['path']
+        debug_info['files'].append({
+            'song_id': file_info['song_id'],
+            'filename': file_info['filename'],
+            'path': file_path,
+            'exists': os.path.exists(file_path),
+            'size': os.path.getsize(file_path) if os.path.exists(file_path) else 0
+        })
+    
+    return jsonify(debug_info)
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001) 
+    app.run(debug=True, host='0.0.0.0', port=5000) 
