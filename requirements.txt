@@ -16,6 +16,7 @@ rarfile==4.2
 yt-dlp==2025.6.25
 requests==2.31.0
 beautifulsoup4==4.12.3
+imageio-ffmpeg==0.5.1
 
 # Production iyileştirmeleri
 psutil==5.9.8

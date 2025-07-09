@@ -54,11 +54,11 @@ try:
     from flask_limiter.util import get_remote_address
     
     limiter = Limiter(
-        app,
         key_func=get_remote_address,
         default_limits=["10 per minute", "100 per hour"],
         storage_uri="memory://"
     )
+    limiter.init_app(app)
     logging.info("Rate limiting aktif edildi")
 except ImportError:
     logging.warning("Flask-Limiter bulunamadı. Rate limiting devre dışı.")
