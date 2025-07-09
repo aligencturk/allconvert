@@ -59,11 +59,51 @@ Uygulama `http://localhost:5001` adresinde çalışacaktır.
 ## 📋 Bağımlılıklar (requirements.txt)
 
 ```
-flask==2.3.3
-yt-dlp==2023.10.13
+Flask==3.0.3
+yt-dlp==2025.6.25
 requests==2.31.0
-beautifulsoup4==4.12.2
-lxml==4.9.3
+beautifulsoup4==4.12.3
+psutil==5.9.8
+Flask-Limiter==3.5.0
+# ... diğer bağımlılıklar
+```
+
+## 🚀 Production İyileştirmeleri
+
+### 🛡️ Güvenlik ve Performans
+- **Otomatik Dosya Temizleme**: 24 saatlik dosya retention
+- **Rate Limiting**: IP bazlı istek sınırlaması (10/dakika, 100/saat)
+- **Thread Pool Executor**: Maksimum 5 eşzamanlı indirme
+- **Disk Monitoring**: %85 uyarı, %95 kritik disk kullanımı
+- **Session Yönetimi**: TTL ile otomatik session temizleme
+- **Memory Optimization**: Sızıntı önleme ve kaynak temizleme
+
+### ⚙️ Konfigürasyon (.env)
+```bash
+# Production konfigürasyonu
+SECRET_KEY=your-secure-secret-key
+CLEANUP_INTERVAL_HOURS=1
+FILE_RETENTION_HOURS=24
+MAX_CONCURRENT_DOWNLOADS=5
+DISK_USAGE_WARNING_PERCENT=85
+DISK_USAGE_CRITICAL_PERCENT=95
+```
+
+### 📊 Monitoring Endpoints
+- **`/admin/status`**: Sistem durumu ve istatistikler
+- **`/admin/cleanup`**: Manuel dosya temizleme
+
+### 🔧 Production Deployment
+```bash
+# Bağımlılıkları yükle
+pip install -r requirements.txt
+
+# .env dosyasını oluştur
+cp .env.example .env
+# .env dosyasını düzenle
+
+# Gunicorn ile çalıştır
+gunicorn -w 4 -b 0.0.0.0:5000 app:app
 ```
 
 ## 📖 Kullanım Kılavuzu

@@ -3,799 +3,628 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Çalma Listesi İndirici</title>
+    <title>AllConvert - Profesyonel Dosya Dönüştürme</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Google AdSense Auto Ads - Buraya kendi AdSense kodunuzu ekleyin -->
+    <!-- 
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+         crossorigin="anonymous"></script>
+    -->
+    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary-color: #0d6efd; 
+            --secondary-color: #6c757d;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --header-bg: #1a253c; /* Koyu Mavi/Lacivert */
+            --card-bg: #ffffff;
+            --text-color: #343a40;
+            --text-light: #f1f1f1;
+            --border-color: #dee2e6;
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1db954, #191414);
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(to bottom, #f0f2f5, #e6e9ee); /* Çok hafif gradyan */
+            color: var(--text-color);
+            padding-top: 80px;
             min-height: 100vh;
+        }
+
+        .navbar {
+            background-color: var(--header-bg);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .navbar .navbar-brand {
+            color: var(--light-color);
+            font-weight: 700;
+        }
+        .navbar .navbar-brand:hover {
             color: white;
-            padding: 20px;
+        }
+        .navbar .nav-link {
+            color: rgba(255, 255, 255, 0.75);
+        }
+        .navbar .nav-link:hover, .navbar .dropdown-item:hover {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .navbar .dropdown-menu {
+            background-color: var(--header-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .navbar .dropdown-item {
+            color: rgba(255, 255, 255, 0.75);
+        }
+        .navbar .dropdown-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        .navbar-toggler {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.75%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
         }
         
-        .container {
-            max-width: 900px;
+        /* Ana layout yapısı */
+        .page-wrapper {
+            display: flex;
+            justify-content: center;
+            max-width: 1400px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            gap: 20px;
+            padding: 0 10px;
         }
         
-        h1 {
+        .sidebar-left, .sidebar-right {
+            width: 160px;
+            flex-shrink: 0;
+        }
+        
+        .main-content {
+            flex: 1;
+            max-width: 800px;
+        }
+        
+        .main-container {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07);
+            border-top: 4px solid var(--primary-color); /* Üst vurgu çizgisi */
+        }
+        
+        /* Sticky sidebar reklamları */
+        .sidebar-ad-sticky {
+            position: sticky;
+            top: 100px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
             text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 30px;
-            color: #1db954;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Floating sticky reklam */
+        .floating-ad {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px 8px 0 0;
+            padding: 10px;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .floating-ad .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        /* Header area sticky reklam */
+        .header-ad-sticky {
+            position: fixed;
+            top: 80px;
+            left: 10px;
+            z-index: 999;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Sağ üst köşe sticky reklam */
+        .corner-ad-sticky {
+            position: fixed;
+            top: 80px;
+            right: 10px;
+            z-index: 999;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Çok küçük ekranlarda fazla reklamları gizle */
+        @media (max-width: 768px) {
+            .header-ad-sticky, .corner-ad-sticky {
+                display: none;
+            }
+            .floating-ad {
+                left: 5px;
+                right: 5px;
+                transform: none;
+                width: calc(100% - 10px);
+            }
+        }
+        
+        /* Mobil cihazlarda sidebar'ları gizle */
+        @media (max-width: 1200px) {
+            .sidebar-left, .sidebar-right {
+                display: none;
+            }
+            .page-wrapper {
+                padding: 0 20px;
+            }
+        }
+        
+        /* Reklam alanları için stil */
+        .ad-container {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px dashed #dee2e6;
+            border-radius: 5px;
+        }
+        
+        .ad-container.top-ad {
+            margin: 20px auto;
+            max-width: 728px; /* Leaderboard banner boyutu */
+        }
+        
+        .ad-container.sidebar-ad {
+            margin: 20px 0;
+            max-width: 300px; /* Medium rectangle boyutu */
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        h1, h2 {
+            color: var(--header-bg);
+            font-weight: 700;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 1.8em;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
         }
         
         .description {
             text-align: center;
             margin-bottom: 40px;
             font-size: 1.1em;
-            opacity: 0.9;
+            color: var(--secondary-color);
+        }
+
+        .converter-form {
+            display: none;
         }
         
-        .input-section {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 30px;
-            border-radius: 15px;
-            margin-bottom: 30px;
+        .form-label {
+            color: var(--text-color);
+            font-weight: 500;
         }
         
-        .form-group {
-            margin-bottom: 20px;
+        .form-control, .form-select {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
         }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #1db954;
+        .form-control:focus, .form-select:focus {
+            background-color: var(--card-bg);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
-        
-        input[type="text"], textarea {
-            width: 100%;
-            padding: 15px;
+
+        .btn-action {
+            background: linear-gradient(45deg, #0d6efd, #3c8aff);
             border: none;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            font-family: inherit;
-            resize: vertical;
-        }
-        
-        input[type="text"]:focus, textarea:focus {
-            outline: none;
-            background: white;
-            box-shadow: 0 0 20px rgba(29, 185, 84, 0.3);
-        }
-        
-        .button {
-            background: linear-gradient(45deg, #1db954, #1ed760);
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
             color: white;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
+            padding: 12px 30px;
+            font-weight: 500;
             transition: all 0.3s ease;
-            margin: 10px 5px;
+            width: 100%;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 10px rgba(13, 110, 253, 0.2);
         }
         
-        .button:hover {
+        .btn-action:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(29, 185, 84, 0.4);
+            box-shadow: 0 6px 15px rgba(13, 110, 253, 0.3);
+            filter: brightness(1.05);
         }
-        
-        .button:disabled {
-            background: #666;
-            cursor: not-allowed;
+        .btn-action:disabled {
+            background: #a0a0a0;
             transform: none;
+            box-shadow: none;
         }
         
-        .tracks-section {
-            display: none;
-            margin-top: 30px;
+        #btn-download-spotify {
+            background: linear-gradient(45deg, #28a745, #2edb69);
+            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.2);
         }
-        
-        .tracks-list {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            padding: 20px;
-            max-height: 400px;
-            overflow-y: auto;
+        #btn-download-spotify:hover {
+             box-shadow: 0 6px 15px rgba(40, 167, 69, 0.3);
         }
-        
-        .track-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            margin: 10px 0;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            transition: all 0.3s ease;
-        }
-        
-        .track-item:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        
-        .track-info {
-            flex: 1;
-        }
-        
-        .track-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        
-        .track-artist {
-            opacity: 0.7;
-            font-size: 0.9em;
-        }
-        
-        .track-status {
-            padding: 8px 15px;
-            border-radius: 25px;
-            font-size: 0.85em;
-            font-weight: 600;
-            min-width: 110px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-        
-        .progress-bar-inner {
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.2);
-            width: 0%;
-            transition: width 0.2s linear;
-            z-index: 1;
-        }
-        
-        .status-text {
-            position: relative;
-            z-index: 2;
-        }
-        
-        .status-waiting {
-            background: linear-gradient(45deg, #666, #777);
-            color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        .status-downloading {
-            background: linear-gradient(45deg, #ff9800, #ffa726);
-            color: white;
-            animation: pulse 1.5s ease-in-out infinite alternate;
-            box-shadow: 0 2px 8px rgba(255,152,0,0.4);
-        }
-        
-        .status-completed {
-            background: linear-gradient(45deg, #4caf50, #66bb6a);
-            color: white;
-            box-shadow: 0 2px 8px rgba(76,175,80,0.4);
-        }
-        
-        .status-error {
-            background: linear-gradient(45deg, #f44336, #e57373);
-            color: white;
-            box-shadow: 0 2px 8px rgba(244,67,54,0.4);
-        }
-        
-        @keyframes pulse {
-            from {
-                box-shadow: 0 2px 8px rgba(255,152,0,0.4);
-                transform: scale(1);
-            }
-            to {
-                box-shadow: 0 4px 16px rgba(255,152,0,0.6);
-                transform: scale(1.05);
-            }
-        }
-        
-        .progress-container {
-            background: rgba(0,0,0,0.3);
-            border-radius: 15px;
-            padding: 20px;
-            margin: 20px 0;
-            display: none;
-        }
-        
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .progress-title {
-            font-size: 1.2em;
-            font-weight: 600;
-            color: #1db954;
-        }
-        
-        .progress-stats {
-            font-size: 0.9em;
-            opacity: 0.8;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 12px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 6px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #1db954, #1ed760);
-            border-radius: 6px;
-            transition: width 0.3s ease;
-            box-shadow: 0 0 10px rgba(29,185,84,0.5);
-        }
-        
-        .current-song {
-            font-size: 0.9em;
-            opacity: 0.9;
-            margin-top: 5px;
-        }
-        
-        .error-message {
-            background: #f44336;
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            display: none;
-        }
-        
-        .success-message {
-            background: #4caf50;
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            display: none;
-        }
-        
-        .loading {
-            text-align: center;
-            margin: 20px 0;
-            display: none;
-        }
-        
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid #1db954;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .api-warning {
-            background: rgba(255, 152, 0, 0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        
-        .api-warning h3 {
-            margin-bottom: 10px;
+
+        #spotify-status-list .list-group-item {
+            background-color: #f8f9fa;
+            border-color: #e9ecef;
+            color: var(--text-color);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎵 Spotify Çalma Listesi İndirici</h1>
-        <p class="description">
-            Spotify çalma listenizin URL'sini girin, şarkıları YouTube'dan bulup MP3 olarak indirin.
-        </p>
-        
-        <div class="input-section">
-            <div class="form-group">
-                <label for="spotify-links">Spotify Şarkı Linkleri (Her satıra bir link):</label>
-                <textarea id="spotify-links" rows="10" placeholder="https://open.spotify.com/track/...
-https://open.spotify.com/track/...
-https://open.spotify.com/track/..."></textarea>
-            </div>
-            <button class="button" onclick="parseSpotifyLinks()">🎵 Şarkı Bilgilerini Çek</button>
-            <button class="button" onclick="extractTrackIds()">⚡ Hızlı Link Çıkarma</button>
-            <button class="button" onclick="loadReadmeLinks()">📄 README.md'den Yükle</button>
-        </div>
-        
-        <div class="input-section" style="margin-top: 20px;">
-            <h3>📝 Manuel Şarkı Ekle</h3>
-            <div class="form-group">
-                <label for="song-name">Şarkı Adı:</label>
-                <input type="text" id="song-name" placeholder="Şarkı adını girin..." />
-            </div>
-            <div class="form-group">
-                <label for="artist-name">Sanatçı:</label>
-                <input type="text" id="artist-name" placeholder="Sanatçı adını girin..." />
-            </div>
-            <button class="button" onclick="addManualSong()">Şarkı Ekle</button>
-        </div>
-        
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>Çalma listesi alınıyor...</p>
-        </div>
-        
-        <div class="error-message" id="error-message"></div>
-        <div class="success-message" id="success-message"></div>
-        
-        <div class="tracks-section" id="tracks-section">
-            <h3>Çalma Listesindeki Şarkılar:</h3>
-            <div class="tracks-list" id="tracks-list"></div>
-            
-            <div class="progress-container" id="progress-container">
-                <div class="progress-header">
-                    <span class="progress-title">📥 İndirme İlerlemesi</span>
-                    <span class="progress-stats" id="progress-stats">0/0 tamamlandı</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
-                </div>
-                <div class="current-song" id="current-song">Hazırlanıyor...</div>
-            </div>
-            
-            <button class="button" onclick="downloadPlaylist()">Tüm Şarkıları İndir</button>
-            <button class="button" onclick="downloadSongsToComputer()" id="download-to-computer-btn" style="display: none;">💾 Şarkıları Bilgisayara İndir</button>
-            <button class="button" onclick="clearStatus()">Durumu Temizle</button>
-            <button class="button" onclick="showDownloadPath()">📁 İndirme Klasörünü Göster</button>
-        </div>
+
+    <!-- Üst Banner Reklam Alanı -->
+    <div class="ad-container top-ad">
+        <!-- Google AdSense Leaderboard Banner (728x90) -->
+        <!-- 
+        <ins class="adsbygoogle"
+             style="display:inline-block;width:728px;height:90px"
+             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-slot="XXXXXXXXXX"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+        -->
+        <p style="color: #6c757d; font-size: 0.9em;">Reklam Alanı - Banner (728x90)</p>
     </div>
 
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-arrow-repeat" style="vertical-align: middle;"></i>
+                AllConvert
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavDropdown">
+                <ul class="navbar-nav mx-auto">
+                    {% set categories = {
+                        "Belge": ["word-to-pdf", "pdf-to-word", "excel-to-pdf", "powerpoint-to-pdf", "word-to-txt", "txt-to-word"],
+                        "Resim": ["pdf-to-jpg", "jpg-to-pdf", "jpg-to-png", "png-to-jpg"],
+                        "Ses & Video": ["wav-to-mp3", "mp4-to-avi"],
+                        "Arşiv": ["rar-to-zip"],
+                        "Veri": ["json-to-xml", "xml-to-json"],
+                        "Çevrimiçi Medya": ["spotify-downloader", "youtube-audio-downloader"]
+                    } %}
+
+                    {% for category_name, converter_keys in categories.items() %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown_{{ loop.index }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                {{ category_name }}
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown_{{ loop.index }}">
+                                {% for key in converter_keys %}
+                                    {% set converter = converters.get(key) %}
+                                    {% if converter %}
+                                        <li><a class="dropdown-item" href="#{{ key }}" onclick="showConverter('{{ key }}')">{{ converter.display_name }}</a></li>
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Ana sayfa wrapper'ı (sol, orta, sağ layout) -->
+    <div class="page-wrapper">
+        
+        <!-- Sol Sidebar -->
+        <div class="sidebar-left">
+            <div class="sidebar-ad-sticky">
+                <!-- Google AdSense Skyscraper (160x600) -->
+                <!-- 
+                <ins class="adsbygoogle"
+                     style="display:inline-block;width:160px;height:600px"
+                     data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                     data-ad-slot="XXXXXXXXXX"></ins>
+                <script>
+                     (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
+                -->
+                <p style="color: #6c757d; font-size: 0.8em; writing-mode: vertical-lr; text-orientation: mixed;">Sol Reklam<br>(160x600)</p>
+            </div>
+        </div>
+
+        <!-- Ana İçerik -->
+        <div class="main-content">
+            <div class="main-container">
+                <div id="welcome-message" style="display: none;">
+                    <h1>Profesyonel Dönüşüm Merkezi</h1>
+                    <p class="description">Başlamak için yukarıdaki menüden bir dönüştürücü seçin.</p>
+                </div>
+                
+                <!-- Hata ve Başarı Mesajları için Alan -->
+                <div id="alert-container" class="mb-3"></div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Tüm Dönüştürücü Formları -->
+                {% for key, converter in converters.items() %}
+                    {% if key == 'spotify-downloader' %}
+                        <div id="{{ key }}" class="converter-form pt-3" style="display: block;">
+                    {% else %}
+                        <div id="{{ key }}" class="converter-form pt-3">
+                    {% endif %}
+                        <h2>{{ converter.display_name }}</h2>
+                        
+                        {% if converter.is_online_service %}
+                            <!-- Çevrimiçi Servis Formları -->
+                            {% if key == 'spotify-downloader' %}
+                                <div class="mb-3">
+                                    <label for="spotify-links" class="form-label">{{ converter.form_fields[0].label }}</label>
+                                    <textarea class="form-control" id="spotify-links" rows="8" placeholder="https://open.spotify.com/track/...&#10;https://open.spotify.com/track/..."></textarea>
+                                </div>
+                                <button id="btn-download-spotify" class="btn btn-action btn-lg text-white" onclick="startSpotifyDownload()">
+                                    <i class="bi bi-download"></i> Şarkıları İndirmeye Başla
+                                </button>
+                                <div id="spotify-progress-section" class="mt-4" style="display: none;">
+                                    <h5>İndirme Durumu</h5>
+                                    <ul class="list-group" id="spotify-status-list"></ul>
+                                    <a id="btn-download-zip" class="btn btn-success mt-3" style="display: none;">
+                                        <i class="bi bi-file-earmark-zip-fill"></i> Tümünü ZIP Olarak İndir
+                                    </a>
+                                </div>
+                            {% elif key == 'youtube-audio-downloader' %}
+                                <form class="youtube-form" method="POST" action="/#{{ key }}">
+                                    <input type="hidden" name="conversion_type" value="{{ key }}">
+                                    <div class="mb-3">
+                                        <label for="youtube_url" class="form-label">{{ converter.form_fields[0].label }}</label>
+                                        <input type="text" class="form-control" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
+                                    </div>
+                                    <button type="submit" class="btn btn-action btn-lg text-white">
+                                        <i class="bi bi-gear-fill"></i> Dönüştür ve İndir
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% else %}
+                            <!-- Dosya Dönüştürücü Formu -->
+                            <form action="/#{{ key }}" method="post" enctype="multipart/form-data">
+                                <input type="hidden" name="conversion_type" value="{{ key }}">
+                                <div class="mb-4">
+                                    <label for="file-{{key}}" class="form-label">Dönüştürülecek Dosya</label>
+                                    <input class="form-control" type="file" id="file-{{key}}" name="file" 
+                                           accept="{{ '.' ~ converter.allowed_extensions|join(',.') }}" 
+                                           required>
+                                    <div class="form-text text-muted mt-2">
+                                        İzin verilen dosya türleri: {{ converter.allowed_extensions|join(', ') }}
+                                        {% if ('excel' in key or 'powerpoint' in key) and not is_windows %}
+                                            <br><strong class="text-danger">Bu özellik yalnızca Windows işletim sisteminde ve Microsoft Office yüklü ise çalışır.</strong>
+                                        {% endif %}
+                                        {% if (('mp3' in key or 'wav' in key or 'mp4' in key or 'avi' in key) and not ffmpeg_available) %}
+                                            <br><strong class="text-danger">Bu özellik için sunucuda FFmpeg'in kurulu olması gerekmektedir.</strong>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-action btn-lg text-white" 
+                                        {% if (('excel' in key or 'powerpoint' in key) and not is_windows) or (('mp3' in key or 'wav' in key or 'mp4' in key or 'avi' in key) and not ffmpeg_available) %}disabled{% endif %}>
+                                    <i class="bi bi-gear-fill"></i> Dönüştür ve İndir
+                                </button>
+                            </form>
+                        {% endif %}
+                        
+                        <!-- Form sonrası reklam alanı -->
+                        <div class="ad-container sidebar-ad mt-4">
+                            <!-- Google AdSense Medium Rectangle (300x250) -->
+                            <!-- 
+                            <ins class="adsbygoogle"
+                                 style="display:inline-block;width:300px;height:250px"
+                                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                                 data-ad-slot="XXXXXXXXXX"></ins>
+                            <script>
+                                 (adsbygoogle = window.adsbygoogle || []).push({});
+                            </script>
+                            -->
+                            <p style="color: #6c757d; font-size: 0.9em;">Reklam Alanı - Rectangle (300x250)</p>
+                        </div>
+                    </div>
+                {% endfor %}
+                
+                <!-- Sayfa sonu reklam alanı -->
+                <div class="ad-container top-ad mt-5">
+                    <!-- Google AdSense Banner veya Large Rectangle -->
+                    <!-- 
+                    <ins class="adsbygoogle"
+                         style="display:inline-block;width:728px;height:90px"
+                         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                         data-ad-slot="XXXXXXXXXX"></ins>
+                    <script>
+                         (adsbygoogle = window.adsbygoogle || []).push({});
+                    </script>
+                    -->
+                    <p style="color: #6c757d; font-size: 0.9em;">Reklam Alanı - Footer Banner (728x90)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sağ Sidebar -->
+        <div class="sidebar-right">
+            <div class="sidebar-ad-sticky">
+                <!-- Google AdSense Skyscraper (160x600) -->
+                <!-- 
+                <ins class="adsbygoogle"
+                     style="display:inline-block;width:160px;height:600px"
+                     data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                     data-ad-slot="XXXXXXXXXX"></ins>
+                <script>
+                     (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
+                -->
+                <p style="color: #6c757d; font-size: 0.8em; writing-mode: vertical-lr; text-orientation: mixed;">Sağ Reklam<br>(160x600)</p>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let currentTracks = [];
-        let downloadInterval = null;
-
-        function showLoading() {
-            document.getElementById('loading').style.display = 'block';
+        // --- Genel Fonksiyonlar ---
+        function showAlert(message, type = 'danger', containerId = 'alert-container') {
+            const alertContainer = document.getElementById(containerId);
+            const alert = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+            alertContainer.innerHTML = alert;
         }
 
-        function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
+        function showConverter(converterId) {
+            // Tüm formları gizle
+            document.querySelectorAll('.converter-form').forEach(form => {
+                form.style.display = 'none';
+            });
+            // Karşılama mesajını gizle
+            document.getElementById('welcome-message').style.display = 'none';
+            
+            // İlgili formu göster
+            const activeForm = document.getElementById(converterId);
+            if (activeForm) {
+                activeForm.style.display = 'block';
+            }
         }
 
-        function showError(message) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => errorDiv.style.display = 'none', 5000);
-        }
+        // URL'den hash'e göre formu göster
+        document.addEventListener('DOMContentLoaded', () => {
+            if(window.location.hash) {
+                const converterId = window.location.hash.substring(1);
+                showConverter(converterId);
+            }
+        });
 
-        function showSuccess(message) {
-            const successDiv = document.getElementById('success-message');
-            successDiv.textContent = message;
-            successDiv.style.display = 'block';
-            setTimeout(() => successDiv.style.display = 'none', 5000);
-        }
+        // --- Spotify İndirici Scriptleri ---
+        let spotifyStatusInterval = null;
 
-        async function parseSpotifyLinks() {
+        async function startSpotifyDownload() {
             const linksText = document.getElementById('spotify-links').value.trim();
             if (!linksText) {
-                showError('Lütfen Spotify şarkı linklerini girin');
+                showAlert('Lütfen en az bir Spotify linki girin.');
                 return;
             }
-
-            showLoading();
             
+            const downloadBtn = document.getElementById('btn-download-spotify');
+            const progressSection = document.getElementById('spotify-progress-section');
+            const statusList = document.getElementById('spotify-status-list');
+            const zipBtn = document.getElementById('btn-download-zip');
+
+            downloadBtn.disabled = true;
+            downloadBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Başlatılıyor...';
+            progressSection.style.display = 'block';
+            statusList.innerHTML = '<li class="list-group-item">Sunucuya gönderiliyor...</li>';
+            zipBtn.style.display = 'none';
+
             try {
-                const response = await fetch('/parse_spotify_links', {
+                const response = await fetch('/download_spotify', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({links_text: linksText})
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ links: linksText })
                 });
 
                 const data = await response.json();
 
-                if (response.ok) {
-                    currentTracks = data.tracks;
-                    displayTracks(data.tracks);
-                    showSuccess(`${data.tracks.length} şarkı bulundu!`);
+                if (data.session_id) {
+                    statusList.innerHTML = `<li class="list-group-item" data-session-id="${data.session_id}">İndirme işlemi başlatıldı. Lütfen bekleyin...</li>`;
+                    spotifyStatusInterval = setInterval(() => checkSpotifyStatus(data.session_id), 3000);
                 } else {
-                    showError(data.error || 'Linkler parse edilemedi');
+                    showAlert(data.error || 'Sunucudan geçersiz yanıt alındı.');
+                    downloadBtn.disabled = false;
+                    downloadBtn.innerHTML = '<i class="bi bi-download"></i> Şarkıları İndirmeye Başla';
                 }
-            } catch (error) {
-                showError('Bağlantı hatası: ' + error.message);
-            } finally {
-                hideLoading();
+            } catch (e) {
+                showAlert('İstek gönderilirken bir hata oluştu: ' + e);
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = '<i class="bi bi-download"></i> Şarkıları İndirmeye Başla';
             }
         }
 
-        function addManualSong() {
-            const songName = document.getElementById('song-name').value.trim();
-            const artistName = document.getElementById('artist-name').value.trim();
-            
-            if (!songName) {
-                showError('Lütfen şarkı adını girin');
-                return;
-            }
-            
-            const newSong = {
-                name: songName,
-                artist: artistName || 'Bilinmeyen Sanatçı'
-            };
-            
-            currentTracks.push(newSong);
-            displayTracks(currentTracks);
-            
-            // Input alanlarını temizle
-            document.getElementById('song-name').value = '';
-            document.getElementById('artist-name').value = '';
-            
-            showSuccess('Şarkı listeye eklendi!');
-        }
-
-        async function extractTrackIds() {
-            const linksText = document.getElementById('spotify-links').value.trim();
-            if (!linksText) {
-                showError('Lütfen Spotify şarkı linklerini girin');
-                return;
-            }
-
-            showLoading();
-            
+        async function checkSpotifyStatus(sessionId) {
             try {
-                const response = await fetch('/extract_track_ids', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({links_text: linksText})
-                });
-
+                const response = await fetch(`/spotify_status/${sessionId}`);
                 const data = await response.json();
+                const statusList = document.getElementById('spotify-status-list');
+                const downloadBtn = document.getElementById('btn-download-spotify');
+                const zipBtn = document.getElementById('btn-download-zip');
 
-                if (response.ok) {
-                    currentTracks = data.tracks;
-                    displayTracks(data.tracks);
-                    showSuccess(`${data.tracks.length} link bulundu! Manuel olarak şarkı adlarını düzenleyebilirsiniz.`);
-                } else {
-                    showError(data.error || 'Linkler çıkarılamadı');
+                let listHtml = '';
+                for (const [key, value] of Object.entries(data.status)) {
+                    let statusIcon = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+                    if (value === 'Tamamlandı') statusIcon = '<i class="bi bi-check-circle-fill text-success"></i>';
+                    if (value.startsWith('Hata')) statusIcon = '<i class="bi bi-x-circle-fill text-danger"></i>';
+                    listHtml += `<li class="list-group-item d-flex justify-content-between align-items-center"><span>${key}</span> ${statusIcon}</li>`;
                 }
-            } catch (error) {
-                showError('Bağlantı hatası: ' + error.message);
-            } finally {
-                hideLoading();
-            }
-        }
+                statusList.innerHTML = listHtml;
 
-        async function loadReadmeLinks() {
-            showLoading();
-            
-            try {
-                const response = await fetch('/load_readme_links', {
-                    method: 'POST'
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    currentTracks = data.tracks;
-                    displayTracks(data.tracks);
-                    showSuccess(`README.md dosyasından ${data.tracks.length} şarkı yüklendi!`);
-                } else {
-                    showError(data.error || 'README.md dosyası okunamadı');
-                }
-            } catch (error) {
-                showError('Bağlantı hatası: ' + error.message);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function displayTracks(tracks) {
-            const tracksList = document.getElementById('tracks-list');
-            tracksList.innerHTML = '';
-
-            tracks.forEach((track, index) => {
-                const trackDiv = document.createElement('div');
-                trackDiv.className = 'track-item';
-                trackDiv.setAttribute('data-song-id', `song_${index}`);
-                trackDiv.innerHTML = `
-                    <div class="track-info">
-                        <div class="track-name">${track.name}</div>
-                        <div class="track-artist">${track.artist}</div>
-                    </div>
-                    <div class="track-status status-waiting">
-                        <div class="progress-bar-inner"></div>
-                        <span class="status-text">Bekleniyor</span>
-                    </div>
-                `;
-                tracksList.appendChild(trackDiv);
-            });
-
-            document.getElementById('tracks-section').style.display = 'block';
-        }
-
-        async function downloadPlaylist() {
-            if (currentTracks.length === 0) {
-                showError('İndirilecek şarkı bulunamadı');
-                return;
-            }
-
-            try {
-                const response = await fetch('/download_songs', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({songs: currentTracks})
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showSuccess('İndirme başlatıldı! Durum takip ediliyor...');
-                    startStatusMonitoring();
-                } else {
-                    showError(data.error || 'İndirme başlatılamadı');
-                }
-            } catch (error) {
-                showError('Bağlantı hatası: ' + error.message);
-            }
-        }
-
-        function startStatusMonitoring() {
-            downloadInterval = setInterval(async () => {
-                try {
-                    const response = await fetch('/download_status');
-                    const data = await response.json();
-
-                    updateTrackStatuses(data);
-
-                    // Tüm şarkılar tamamlandıysa monitoring'i durdur
-                    const statuses = data.status || {};
-                    const allCompleted = Object.keys(statuses).length > 0 && 
-                        Object.values(statuses).every(s => s === 'Tamamlandı' || s.startsWith('Hata:') || s === 'Bulunamadı');
-                    
-                    if (allCompleted) {
-                        clearInterval(downloadInterval);
-                        showSuccess('Tüm şarkılar işlendi!');
+                if (data.is_complete) {
+                    clearInterval(spotifyStatusInterval);
+                    if (data.zip_ready) {
+                        zipBtn.href = `/download_spotify_zip/${sessionId}`;
+                        zipBtn.style.display = 'block';
                     }
-                } catch (error) {
-                    console.error('Durum kontrolü hatası:', error);
+                    downloadBtn.disabled = false;
+                    downloadBtn.innerHTML = '<i class="bi bi-download"></i> Yeni İndirme Başlat';
                 }
-            }, 2000);
-        }
-
-        function updateTrackStatuses(response) {
-            const statuses = response.status || {};
-            const downloadedFiles = response.downloaded_files || [];
-            
-            let completedCount = 0;
-            let totalCount = Object.keys(statuses).length;
-            let currentlyDownloading = '';
-            
-            Object.keys(statuses).forEach(songId => {
-                const trackItem = document.querySelector(`.track-item[data-song-id="${songId}"]`);
-                if (trackItem) {
-                    const statusElement = trackItem.querySelector('.track-status');
-                    const statusText = trackItem.querySelector('.status-text');
-                    const progressBar = trackItem.querySelector('.progress-bar-inner');
-
-                    statusElement.className = 'track-status'; // Reset classes
-                    progressBar.style.width = '0%'; // Reset progress bar
-
-                    if (statuses[songId].startsWith("İndiriliyor...")) {
-                        statusElement.classList.add('status-downloading');
-                        const progressMatch = statuses[songId].match(/(\d+\.?\d*)%/);
-                        if (progressMatch) {
-                            const percent = progressMatch[1];
-                            statusText.textContent = `İniyor ${percent}%`;
-                            progressBar.style.width = `${percent}%`;
-                        } else {
-                            statusText.textContent = 'İndiriliyor...';
-                        }
-                    } else if (statuses[songId] === "İşleniyor...") {
-                        statusElement.classList.add('status-downloading');
-                        statusText.textContent = statuses[songId];
-                        progressBar.style.width = '100%'; // Show full bar for processing
-                        progressBar.style.backgroundColor = 'rgba(255, 255, 255, 0.4)'; // Different color for processing
-                    } else if (statuses[songId] === "Tamamlandı") {
-                        statusElement.classList.add('status-completed');
-                        statusText.textContent = statuses[songId];
-                        completedCount++;
-                    } else if (statuses[songId].startsWith("Hata") || statuses[songId] === "Uygun şarkı bulunamadı") {
-                        statusElement.classList.add('status-error');
-                        statusText.textContent = "Hata";
-                        statusElement.title = statuses[songId]; // Show full error on hover
-                        completedCount++; // Hata da tamamlanmış sayılır
-                    } else { // "Aranıyor..." ve diğerleri
-                        statusElement.classList.add('status-waiting');
-                        statusText.textContent = statuses[songId];
-                    }
-                }
-            });
-            
-            // Progress bar güncelle
-            if (totalCount > 0) {
-                updateProgressBar(completedCount, totalCount, currentlyDownloading);
-            }
-            
-            // Eğer dosyalar indirilmişse indirme butonlarını göster
-            if (downloadedFiles.length > 0) {
-                showDownloadZipButton();
-                // Bilgisayara indirme butonunu göster
-                const downloadBtn = document.getElementById('download-to-computer-btn');
-                if (downloadBtn) {
-                    downloadBtn.style.display = 'inline-block';
-                }
-            }
-        }
-        
-        function updateProgressBar(completed, total, currentSong) {
-            const progressContainer = document.getElementById('progress-container');
-            const progressFill = document.getElementById('progress-fill');
-            const progressStats = document.getElementById('progress-stats');
-            const currentSongElement = document.getElementById('current-song');
-            
-            if (total > 0) {
-                progressContainer.style.display = 'block';
-                
-                const percentage = Math.round((completed / total) * 100);
-                progressFill.style.width = percentage + '%';
-                progressStats.textContent = `${completed}/${total} tamamlandı (${percentage}%)`;
-                
-                if (currentSong) {
-                    currentSongElement.textContent = `🎵 İndiriliyor: ${currentSong}`;
-                } else if (completed === total) {
-                    currentSongElement.textContent = '✅ Tüm şarkılar işlendi!';
-                    progressFill.style.background = 'linear-gradient(90deg, #4caf50, #66bb6a)';
-                } else {
-                    currentSongElement.textContent = 'Sıradaki şarkı bekleniyor...';
-                }
-            }
-        }
-        
-        function showDownloadZipButton() {
-            const tracksSection = document.getElementById('tracks-section');
-            let zipButton = document.getElementById('download-zip-btn');
-            
-            if (!zipButton) {
-                zipButton = document.createElement('button');
-                zipButton.id = 'download-zip-btn';
-                zipButton.className = 'button';
-                zipButton.textContent = '📦 Tüm Dosyaları ZIP Olarak İndir';
-                zipButton.onclick = downloadZip;
-                tracksSection.appendChild(zipButton);
-            }
-        }
-        
-        async function downloadZip() {
-            try {
-                const response = await fetch('/download_zip');
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `spotify_songs_${new Date().toISOString().slice(0,10)}.zip`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                    showSuccess('Dosyalar indiriliyor!');
-                } else {
-                    showError('ZIP dosyası oluşturulamadı');
-                }
-            } catch (error) {
-                showError('ZIP indirme hatası: ' + error.message);
-            }
-        }
-
-        async function showDownloadPath() {
-            try {
-                const response = await fetch('/get_download_path');
-                const data = await response.json();
-                
-                const message = `İndirilen dosyalar burada: ${data.download_path}
-                
-Her indirme için yeni bir klasör oluşturulur (tarih_saat formatında).
-
-Dosyaları ZIP olarak da indirebilirsiniz!`;
-                
-                alert(message);
-            } catch (error) {
-                showError('Klasör yolu alınamadı: ' + error.message);
-            }
-        }
-
-        async function clearStatus() {
-            try {
-                await fetch('/clear_status', {method: 'POST'});
-                
-                // Tüm durumları "Bekliyor" olarak sıfırla
-                document.querySelectorAll('.track-status').forEach(el => {
-                    el.querySelector('.progress-bar-inner').style.width = '0%';
-                    el.querySelector('.status-text').textContent = 'Bekleniyor';
-                    el.className = 'track-status status-waiting';
-                });
-                
-                // Progress bar'ı gizle ve sıfırla
-                const progressContainer = document.getElementById('progress-container');
-                const progressFill = document.getElementById('progress-fill');
-                progressContainer.style.display = 'none';
-                progressFill.style.width = '0%';
-                progressFill.style.background = 'linear-gradient(90deg, #1db954, #1ed760)';
-                
-                // ZIP butonu varsa kaldır
-                const zipButton = document.getElementById('download-zip-btn');
-                if (zipButton) {
-                    zipButton.remove();
-                }
-                
-                // Bilgisayara indirme butonunu gizle
-                const downloadBtn = document.getElementById('download-to-computer-btn');
-                if (downloadBtn) {
-                    downloadBtn.style.display = 'none';
-                }
-                
-                if (downloadInterval) {
-                    clearInterval(downloadInterval);
-                }
-                
-                showSuccess('Durum temizlendi');
-            } catch (error) {
-                showError('Durum temizleme hatası: ' + error.message);
-            }
-        }
-
-        async function downloadSongsToComputer() {
-            try {
-                const response = await fetch('/download_zip');
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `spotify_songs_${new Date().toISOString().slice(0,10)}.zip`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                    showSuccess('Şarkılar bilgisayarınıza indiriliyor!');
-                } else {
-                    const errorData = await response.json();
-                    showError(errorData.error || 'ZIP dosyası oluşturulamadı');
-                }
-            } catch (error) {
-                showError('İndirme hatası: ' + error.message);
+            } catch (e) {
+                console.error("Durum kontrol hatası:", e);
+                clearInterval(spotifyStatusInterval);
             }
         }
     </script>
+
 </body>
 </html> 
